@@ -4,13 +4,14 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MinLength,
 } from 'class-validator';
 
 const passwordRegEx =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*d)(?=.*[@$!%*?&])[A-Za-zd@$!%*?&]{8,20}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
 
 export class CreateUserDto {
   @IsString()
@@ -18,6 +19,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   name: string;
 
+  @IsString()
   @IsNotEmpty()
   @MinLength(3, { message: 'Username must have at least 3 characters.' })
   @IsAlphanumeric(undefined, {
@@ -25,17 +27,20 @@ export class CreateUserDto {
   })
   username: string;
 
+  @IsString()
   @IsNotEmpty()
   @IsEmail(undefined, { message: 'Please provide valid Email.' })
   email: string;
 
+  @IsOptional()
   @IsInt()
-  age: number;
+  age?: number;
 
   @IsString()
   @IsEnum(['f', 'm', 'u'])
-  gender: string;
+  gender: 'f' | 'm' | 'u';
 
+  @IsString()
   @IsNotEmpty()
   @Matches(passwordRegEx, {
     message: `Password must contain Minimum 8 and maximum 20 characters, 

@@ -14,7 +14,7 @@ export class UserService {
   createUser(createUserDto: CreateUserDto): Promise<User> {
     const user: User = new User();
     user.name = createUserDto.name;
-    user.age = createUserDto.age;
+    user.age = createUserDto.age ?? -1;
     user.email = createUserDto.email;
     user.username = createUserDto.username;
     user.password = createUserDto.password;
