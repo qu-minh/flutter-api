@@ -9,9 +9,8 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
-
-const passwordRegEx =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+import { Gender } from 'src/common/enums';
+import { PASSWORD_REGEX as PasswordRegex } from 'src/common/regex/password.regex';
 
 export class CreateUserDto {
   @IsString()
@@ -37,12 +36,12 @@ export class CreateUserDto {
   age?: number;
 
   @IsString()
-  @IsEnum(['f', 'm', 'u'])
-  gender: 'f' | 'm' | 'u';
+  @IsEnum(Gender)
+  gender: Gender;
 
   @IsString()
   @IsNotEmpty()
-  @Matches(passwordRegEx, {
+  @Matches(PasswordRegex, {
     message: `Password must contain Minimum 8 and maximum 20 characters, 
     at least one uppercase letter, 
     one lowercase letter, 

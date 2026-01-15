@@ -1,3 +1,4 @@
+import { Gender } from 'src/common/enums';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -23,11 +24,11 @@ export class User {
   @Column({ type: 'varchar' })
   password: string;
 
-  @Column({ type: 'enum', enum: ['m', 'f', 'u'] })
+  @Column({ type: 'enum', enum: Gender })
   /**
    * m - male
    * f - female
    * u - unspecified
    */
-  gender: string;
+  gender: Gender;
 }

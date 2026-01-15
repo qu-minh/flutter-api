@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -11,7 +15,28 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  createUser(createUserDto: CreateUserDto): Promise<User> {
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
+    // Kiểm tra email đã tồn tại chưa
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+    if (existingUserByEmail) {
+      throw new ConflictException(
+        `Email ${createUserDto.email} has already been registered.`,
+      );
+    }
+
+    // Kiểm tra username đã tồn tại chưa
+    const existingUserByUsername = await this.userRepository.findOne({
+      where: { username: createUserDto.username },
+    });
+    if (existingUserByUsername) {
+      throw new ConflictException(
+        `Username ${createUserDto.username} has already been registered.`,
+      );
+    }
+
+    // Tạo user mới nếu chưa tồn tại
     const user: User = new User();
     user.name = createUserDto.name;
     user.age = createUserDto.age ?? -1;
@@ -34,8 +59,14 @@ export class UserService {
     return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async updateUser(id: number, dto: UpdateUserDto) {
+    const result = await this.userRepository.update(id, dto);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return this.userRepository.findOneBy({ id });
   }
 
   remove(id: number) {
