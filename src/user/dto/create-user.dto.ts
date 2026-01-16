@@ -14,21 +14,21 @@ import { PASSWORD_REGEX as PasswordRegex } from 'src/common/regex/password.regex
 
 export class CreateUserDto {
   @IsString()
-  @MinLength(2, { message: 'Name must have at least 2 characters.' })
+  @MinLength(2, { message: 'Tên phải có ít nhất 2 ký tự.' })
   @IsNotEmpty()
   name: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Username must have at least 3 characters.' })
+  @MinLength(3, { message: 'Tên đăng nhập phải có ít nhất 3 ký tự.' })
   @IsAlphanumeric(undefined, {
-    message: 'Username does not allow other than alpha numeric chars.',
+    message: 'Tên đăng nhập chỉ được phép chứa chữ cái và số.',
   })
   username: string;
 
   @IsString()
   @IsNotEmpty()
-  @IsEmail(undefined, { message: 'Please provide valid Email.' })
+  @IsEmail(undefined, { message: 'Vui lòng cung cấp địa chỉ email hợp lệ.' })
   email: string;
 
   @IsOptional()
@@ -42,11 +42,11 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @Matches(PasswordRegex, {
-    message: `Password must contain Minimum 8 and maximum 20 characters, 
-    at least one uppercase letter, 
-    one lowercase letter, 
-    one number and 
-    one special character`,
+    message: `Mật khẩu phải có tối thiểu 8 và tối đa 20 ký tự, 
+    ít nhất một chữ hoa, 
+    một chữ thường, 
+    một chữ số và 
+    một ký tự đặc biệt`,
   })
   password: string;
 }

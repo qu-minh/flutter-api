@@ -12,7 +12,7 @@ import { Gender } from 'src/common/enums';
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  @MinLength(2, { message: 'Name must have at least 2 characters.' })
+  @MinLength(2, { message: 'Tên phải có ít nhất 2 ký tự.' })
   @IsNotEmpty()
   name?: string;
 

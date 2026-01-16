@@ -21,7 +21,7 @@ export class User {
   @Column({ type: 'int' })
   age: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', select: false })
   password: string;
 
   @Column({ type: 'enum', enum: Gender })

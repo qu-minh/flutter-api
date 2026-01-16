@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -22,7 +23,7 @@ export class UserService {
     });
     if (existingUserByEmail) {
       throw new ConflictException(
-        `Email ${createUserDto.email} has already been registered.`,
+        `Email ${createUserDto.email} đã được đăng ký.`,
       );
     }
 
@@ -32,29 +33,31 @@ export class UserService {
     });
     if (existingUserByUsername) {
       throw new ConflictException(
-        `Username ${createUserDto.username} has already been registered.`,
+        `Tên đăng nhập ${createUserDto.username} đã được đăng ký.`,
       );
     }
 
     // Tạo user mới nếu chưa tồn tại
     const user: User = new User();
     user.name = createUserDto.name;
-    user.age = createUserDto.age ?? -1;
     user.email = createUserDto.email;
-    user.username = createUserDto.username;
-    user.password = createUserDto.password;
+    user.age = createUserDto.age ?? -1;
     user.gender = createUserDto.gender;
-    return this.userRepository.save(user);
+    user.username = createUserDto.username;
+    user.password = await bcrypt.hash(createUserDto.password, 10);
+    const savedUser = await this.userRepository.save(user);
+    const { password, ...userWithoutPassword } = savedUser;
+    return userWithoutPassword as User;
   }
 
-  findAllUser(): Promise<User[]> {
+  async findAllUser(): Promise<User[]> {
     return this.userRepository.find();
   }
 
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`Không tìm thấy người dùng với ID ${id}`);
     }
     return user;
   }
@@ -63,7 +66,7 @@ export class UserService {
     const result = await this.userRepository.update(id, dto);
 
     if (result.affected === 0) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`Không tìm thấy người dùng với ID ${id}`);
     }
 
     return this.userRepository.findOneBy({ id });
