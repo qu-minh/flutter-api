@@ -3,11 +3,8 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class User {
-  /**
-   * this decorator will help to auto generate id for the table.
-   */
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ type: 'varchar', length: 30 })
   name: string;
@@ -25,10 +22,7 @@ export class User {
   password: string;
 
   @Column({ type: 'enum', enum: Gender })
-  /**
-   * m - male
-   * f - female
-   * u - unspecified
-   */
+
+  // m,f,u
   gender: Gender;
 }

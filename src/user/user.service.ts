@@ -54,7 +54,7 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
       throw new NotFoundException(`Không tìm thấy người dùng với ID ${id}`);
@@ -62,7 +62,7 @@ export class UserService {
     return user;
   }
 
-  async updateUser(id: number, dto: UpdateUserDto) {
+  async updateUser(id: string, dto: UpdateUserDto) {
     const result = await this.userRepository.update(id, dto);
 
     if (result.affected === 0) {
@@ -72,7 +72,12 @@ export class UserService {
     return this.userRepository.findOneBy({ id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string): Promise<string> {
+    const result = await this.userRepository.delete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Không tìm thấy người dùng với ID ${id}`);
+    }
+    return `Đã xóa người dùng Thành công!`;
   }
 }

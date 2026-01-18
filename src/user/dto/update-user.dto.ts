@@ -22,6 +22,6 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(1, { message: 'Tuổi phải lớn hơn hoặc bằng 1.' })
   age?: number;
 }
