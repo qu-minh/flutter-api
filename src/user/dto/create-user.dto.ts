@@ -1,8 +1,8 @@
 import {
   IsAlphanumeric,
+  IsDateString,
   IsEmail,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -32,8 +32,8 @@ export class CreateUserDto {
   email: string;
 
   @IsOptional()
-  @IsInt()
-  age?: number;
+  @IsDateString({}, { message: 'Vui lòng cung cấp ngày sinh hợp lệ.' })
+  birthday?: Date;
 
   @IsString()
   @IsEnum(Gender)

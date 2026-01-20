@@ -6,10 +6,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserService } from './user.service';
 
@@ -23,8 +25,8 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll() {
-    return this.userService.findAllUser();
+  findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAllUser(query);
   }
 
   @UseGuards(JwtAuthGuard)
