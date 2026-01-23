@@ -100,6 +100,7 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`Không tìm thấy người dùng với ID ${id}`);
     }
+
     return user;
   }
 

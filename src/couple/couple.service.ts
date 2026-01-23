@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CoupleImageKind } from 'src/common/enums';
 import { User } from 'src/user/entities/user.entity';
 import { ILike, Repository } from 'typeorm';
 import { CreateCoupleDto } from './dto/create-couple.dto';
 import { QueryCoupleDto } from './dto/query-couple.dto';
 import { UpdateCoupleDto } from './dto/update-couple.dto';
+import { CoupleImage } from './entities/couple-image.entity';
 import { Couple } from './entities/couple.entity';
 
 @Injectable()
@@ -13,7 +15,13 @@ export class CoupleService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(Couple)
     private readonly coupleRepository: Repository<Couple>,
+    @InjectRepository(CoupleImage)
+    private readonly coupleImageRepository: Repository<CoupleImage>,
   ) {}
+
+  private buildCoupleImageUrl(coupleId: string, kind: CoupleImageKind) {
+    return `/couple/${coupleId}/image/${kind}`;
+  }
 
   async createCouple(dto: CreateCoupleDto, userId: string) {
     const couple = this.coupleRepository.create({
@@ -80,12 +88,130 @@ export class CoupleService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} couple`;
+  async findOne(id: string): Promise<Couple> {
+    const couple = await this.coupleRepository.findOneBy({ id });
+    if (!couple) {
+      throw new NotFoundException(`Không tìm thấy ID Couple ${id}`);
+    }
+
+    return couple;
   }
 
-  update(id: number, updateCoupleDto: UpdateCoupleDto) {
-    return `This action updates a #${id} couple`;
+  async updateCouple(id: string, updateCoupleDto: UpdateCoupleDto) {
+    const result = await this.coupleRepository.update(id, updateCoupleDto);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Không tìm thấy ID Couple ${id}`);
+    }
+
+    return this.coupleRepository.findOneBy({ id });
+  }
+
+  async uploadCoupleImage(params: {
+    coupleId: string;
+    kind: CoupleImageKind;
+    file: Express.Multer.File;
+  }) {
+    const couple = await this.coupleRepository.findOneBy({
+      id: params.coupleId,
+    });
+    if (!couple) {
+      throw new NotFoundException(
+        `Không tìm thấy ID Couple ${params.coupleId}`,
+      );
+    }
+
+    const url = this.buildCoupleImageUrl(params.coupleId, params.kind);
+
+    await this.coupleImageRepository.upsert(
+      {
+        coupleId: params.coupleId,
+        kind: params.kind,
+        mimeType: params.file.mimetype,
+        originalName: params.file.originalname,
+        data: params.file.buffer,
+      },
+      ['coupleId', 'kind'],
+    );
+
+    await this.coupleRepository.update(params.coupleId, {
+      [params.kind]: url,
+    } as unknown as Partial<Couple>);
+
+    return {
+      url,
+    };
+  }
+
+  async uploadCoupleImages(params: {
+    coupleId: string;
+    files: Partial<Record<CoupleImageKind, Express.Multer.File | undefined>>;
+  }) {
+    const urls: Partial<Record<CoupleImageKind, string>> = {};
+
+    return this.coupleImageRepository.manager.transaction(async (manager) => {
+      const coupleRepo = manager.getRepository(Couple);
+      const coupleImageRepo = manager.getRepository(CoupleImage);
+
+      const couple = await coupleRepo.findOneBy({ id: params.coupleId });
+      if (!couple) {
+        throw new NotFoundException(
+          `Không tìm thấy ID Couple ${params.coupleId}`,
+        );
+      }
+
+      const updatePayload: Partial<Couple> = {};
+
+      const kinds: CoupleImageKind[] = [
+        CoupleImageKind.MalePartnerAvatar,
+        CoupleImageKind.FemalePartnerAvatar,
+        CoupleImageKind.BackgroundImageUrl,
+      ];
+
+      for (const kind of kinds) {
+        const file = params.files?.[kind];
+        if (!file) continue;
+
+        const url = this.buildCoupleImageUrl(params.coupleId, kind);
+        urls[kind] = url;
+
+        await coupleImageRepo.upsert(
+          {
+            coupleId: params.coupleId,
+            kind,
+            mimeType: file.mimetype,
+            originalName: file.originalname,
+            data: file.buffer,
+          },
+          ['coupleId', 'kind'],
+        );
+
+        (updatePayload as any)[kind] = url;
+      }
+
+      if (Object.keys(updatePayload).length > 0) {
+        await coupleRepo.update(params.coupleId, updatePayload);
+      }
+
+      const updated = await coupleRepo.findOneBy({ id: params.coupleId });
+      return {
+        urls,
+        couple: updated,
+      };
+    });
+  }
+
+  async getCoupleImage(params: { coupleId: string; kind: CoupleImageKind }) {
+    const image = await this.coupleImageRepository.findOneBy({
+      coupleId: params.coupleId,
+      kind: params.kind,
+    });
+
+    if (!image) {
+      throw new NotFoundException('Không tìm thấy hình ảnh.');
+    }
+
+    return image;
   }
 
   remove(id: number) {

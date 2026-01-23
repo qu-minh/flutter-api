@@ -3,3 +3,9 @@ export enum Gender {
   M = 'm',
   U = 'u',
 }
+
+export enum CoupleImageKind {
+  MalePartnerAvatar = 'malePartnerAvatar',
+  FemalePartnerAvatar = 'femalePartnerAvatar',
+  BackgroundImageUrl = 'backgroundImageUrl',
+}
