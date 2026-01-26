@@ -1,9 +1,13 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('couples')
+@Index(['shareToken'], { unique: true })
 export class Couple {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  shareToken: string | null;
 
   @Column()
   date: Date;
@@ -34,4 +38,7 @@ export class Couple {
 
   @Column()
   createdByUserId: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, select: false })
+  passwordHash: string | null;
 }

@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseEnumPipe,
   ParseFilePipeBuilder,
@@ -31,8 +32,10 @@ import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
 import { CoupleService } from './couple.service';
 import { CreateCoupleDto } from './dto/create-couple.dto';
 import { QueryCoupleDto } from './dto/query-couple.dto';
+import { SetCouplePasswordDto } from './dto/set-couple-password.dto';
 import { UpdateCoupleDto } from './dto/update-couple.dto';
 import { UploadCoupleImageDto } from './dto/upload-couple-image.dto';
+import { VerifyCouplePasswordDto } from './dto/verify-couple-password.dto';
 
 @Controller('couple')
 export class CoupleController {
@@ -49,30 +52,147 @@ export class CoupleController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createCoupleDto: CreateCoupleDto, @Req() req) {
+  async create(@Body() createCoupleDto: CreateCoupleDto, @Req() req) {
     const userId = req.user?.userId;
     if (!userId) {
       throw new UnauthorizedException('Không có quyền truy cập');
     }
-    return this.coupleService.createCouple(createCoupleDto, userId);
+    const created = await this.coupleService.createCouple(
+      createCoupleDto,
+      userId,
+    );
+
+    return {
+      ...created,
+      password: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Query() query: QueryCoupleDto) {
-    return this.coupleService.findAllCouple(query);
+  findAll(@Query() query: QueryCoupleDto, @Req() req) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
+    return this.coupleService.findAllCouple(query, userId);
+  }
+
+  // Public QR flow (no JWT): access by shareToken
+  @Get('share/:token')
+  getPublicByShareToken(
+    @Param('token') token: string,
+    @Headers('x-couple-password') couplePassword?: string,
+  ) {
+    return this.coupleService.getPublicCoupleByShareToken({
+      shareToken: token,
+      password: couplePassword,
+    });
+  }
+
+  @Post('share/:token/verify-password')
+  verifyPasswordByShareToken(
+    @Param('token') token: string,
+    @Body() dto: VerifyCouplePasswordDto,
+  ) {
+    return this.coupleService.verifyCouplePasswordByShareToken({
+      shareToken: token,
+      password: dto.password,
+    });
+  }
+
+  @Patch('share/:token/password')
+  setInitialPasswordByShareToken(
+    @Param('token') token: string,
+    @Body() dto: SetCouplePasswordDto,
+    @Headers('x-couple-password') currentPassword?: string,
+  ) {
+    return this.coupleService.setCouplePasswordByShareToken({
+      shareToken: token,
+      newPassword: dto.password,
+      currentPassword,
+    });
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coupleService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @Req() req,
+    @Headers('x-couple-password') couplePassword?: string,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
+    return this.coupleService.findOne({
+      id,
+      userId,
+      password: couplePassword,
+    });
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCoupleDto: UpdateCoupleDto) {
-    return this.coupleService.updateCouple(id, updateCoupleDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateCoupleDto: UpdateCoupleDto,
+    @Req() req,
+    @Headers('x-couple-password') couplePassword?: string,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
+    return this.coupleService.updateCouple({
+      id,
+      userId,
+      password: couplePassword,
+      dto: updateCoupleDto,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/password')
+  setPassword(
+    @Param('id') id: string,
+    @Body() dto: SetCouplePasswordDto,
+    @Req() req,
+    @Headers('x-couple-password') currentPassword?: string,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
+    return this.coupleService.setCouplePassword({
+      coupleId: id,
+      userId,
+      newPassword: dto.password,
+      currentPassword,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/verify-password')
+  verifyPassword(
+    @Param('id') id: string,
+    @Body() dto: VerifyCouplePasswordDto,
+    @Req() req,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
+    return this.coupleService.verifyCouplePassword({
+      coupleId: id,
+      userId,
+      password: dto.password,
+    });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -88,6 +208,8 @@ export class CoupleController {
   uploadImage(
     @Param('id') id: string,
     @Body() dto: UploadCoupleImageDto,
+    @Req() req,
+    @Headers('x-couple-password') couplePassword: string | undefined,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
@@ -98,10 +220,17 @@ export class CoupleController {
     )
     file: Express.Multer.File,
   ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
     return this.coupleService.uploadCoupleImage({
       coupleId: id,
       kind: dto.kind,
       file,
+      userId,
+      password: couplePassword,
     });
   }
 
@@ -124,6 +253,8 @@ export class CoupleController {
   )
   uploadImages(
     @Param('id') id: string,
+    @Req() req,
+    @Headers('x-couple-password') couplePassword: string | undefined,
     @UploadedFiles()
     files: {
       malePartnerAvatar?: Express.Multer.File[];
@@ -143,6 +274,11 @@ export class CoupleController {
     this.validateImageFile(female);
     this.validateImageFile(background);
 
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
     return this.coupleService.uploadCoupleImages({
       coupleId: id,
       files: {
@@ -150,6 +286,8 @@ export class CoupleController {
         [CoupleImageKind.FemalePartnerAvatar]: female,
         [CoupleImageKind.BackgroundImageUrl]: background,
       },
+      userId,
+      password: couplePassword,
     });
   }
 
@@ -159,11 +297,20 @@ export class CoupleController {
   async getImage(
     @Param('id') id: string,
     @Param('kind', new ParseEnumPipe(CoupleImageKind)) kind: CoupleImageKind,
+    @Headers('x-couple-password') couplePassword: string | undefined,
+    @Req() req,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Không có quyền truy cập');
+    }
+
     const image = await this.coupleService.getCoupleImage({
       coupleId: id,
       kind,
+      userId,
+      password: couplePassword,
     });
 
     res.setHeader('Content-Type', image.mimeType);
